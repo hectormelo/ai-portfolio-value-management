@@ -114,12 +114,16 @@ http://localhost:8000/benefit-recommendation.html
 ## Example use cases
 
 ### 1. Benefit identification from an existing project
+<img width="921" height="521" alt="image" src="https://github.com/user-attachments/assets/46ecdc3c-9123-4fd7-9e21-e83f8ce9e141" />
+
 
 Input: a project contract in PDF.
 
 Output: a structured mapping between project deliverables and potential benefits, including benefit category, contribution level, and rationale.
 
 ### 2. Benefit-aware project formulation
+<img width="975" height="765" alt="image" src="https://github.com/user-attachments/assets/cc40cc17-e931-4d21-bfd6-03e9ec5424d1" />
+
 
 Input: a proposed project objective and deliverables.
 

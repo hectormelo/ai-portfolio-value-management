@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Identificación de Beneficios · Carga de Contratos</title>
+<style>
+  :root{
+    --ink:#10243b;--ink-soft:#3a5778;--paper:#f6f4ee;--line:#d8d2c4;
+    --accent:#b45309;           /* ámbar — identificación */
+    --accent-soft:#fdf0dd;
+    --ok:#0f766e;--ok-soft:#dcefec;--danger:#9f1239;--danger-soft:#fdeef1;
+    --radius:14px;
+    --mono:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;
+    --sans:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);color:var(--ink);
+    background:linear-gradient(180deg,#f6f4ee,#eef0ec 100%);min-height:100vh;line-height:1.55}
+  .wrap{max-width:1000px;margin:0 auto;padding:32px 20px 64px}
+  header.top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  header.top h1{font-size:1.5rem;margin:0;letter-spacing:-.02em}
+  header.top .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--accent);font-weight:600}
+  .sub{color:var(--ink-soft);font-size:.95rem;margin:2px 0 24px}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;margin-bottom:20px;box-shadow:0 1px 2px rgba(16,36,59,.04)}
+  .card h2{font-size:.82rem;text-transform:uppercase;letter-spacing:.12em;
+    color:var(--ink-soft);margin:0 0 16px;font-weight:700}
+
+  details.config{margin-bottom:20px}
+  details.config summary{cursor:pointer;font-family:var(--mono);font-size:.8rem;
+    color:var(--accent);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.config summary::-webkit-details-marker{display:none}
+  details.config summary::before{content:"⚙";font-size:1rem}
+
+  label{display:block;font-size:.78rem;font-weight:600;color:var(--ink-soft);margin:0 0 6px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  input{width:100%;font-family:inherit;font-size:.95rem;color:var(--ink);
+    background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  input:focus{outline:2px solid var(--accent);outline-offset:1px;background:#fff}
+  .field{margin-bottom:16px}
+  .hint{font-size:.74rem;color:var(--ink-soft);margin-top:5px}
+
+  /* Dropzone */
+  .drop{border:2px dashed var(--line);border-radius:var(--radius);background:var(--paper);
+    padding:34px 20px;text-align:center;cursor:pointer;transition:border-color .18s,background .18s}
+  .drop:hover,.drop.drag{border-color:var(--accent);background:var(--accent-soft)}
+  .drop .big{font-size:1.05rem;font-weight:600;color:var(--ink)}
+  .drop .small{font-size:.82rem;color:var(--ink-soft);margin-top:6px}
+  input[type=file]{display:none}
+
+  /* Lista de archivos */
+  .files{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+  .file-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--line);
+    border-radius:10px;background:#fff;font-size:.9rem}
+  .file-item .name{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .file-item .size{font-family:var(--mono);font-size:.74rem;color:var(--ink-soft)}
+  .badge{font-family:var(--mono);font-size:.68rem;padding:3px 9px;border-radius:20px;font-weight:600;letter-spacing:.03em}
+  .badge.pending{background:var(--paper);color:var(--ink-soft)}
+  .badge.up{background:var(--accent-soft);color:var(--accent)}
+  .badge.run{background:#e8eef6;color:var(--ink-soft)}
+  .badge.ok{background:var(--ok-soft);color:var(--ok)}
+  .badge.err{background:var(--danger-soft);color:var(--danger)}
+  .file-item .rm{border:none;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:1.1rem;line-height:1}
+
+  .actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px}
+  button.run{background:var(--accent);color:#fff;border:none;border-radius:10px;
+    padding:12px 24px;font-size:.95rem;font-weight:600;cursor:pointer;transition:filter .15s}
+  button.run:hover{filter:brightness(1.08)}
+  button.run:disabled{opacity:.5;cursor:not-allowed}
+  button.ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line);
+    border-radius:10px;padding:11px 16px;font-size:.9rem;cursor:pointer}
+  button.ghost:disabled{opacity:.5;cursor:not-allowed}
+  .spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+    border-radius:50%;display:inline-block;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Resultados */
+  .result{border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px;overflow:hidden}
+  .result summary{cursor:pointer;padding:13px 16px;background:#fff;font-weight:600;font-size:.92rem;
+    list-style:none;display:flex;align-items:center;gap:10px}
+  .result summary::-webkit-details-marker{display:none}
+  .result summary .chev{color:var(--accent);transition:transform .15s}
+  .result[open] summary .chev{transform:rotate(90deg)}
+  .result summary .rname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  pre.json{white-space:pre-wrap;font-family:var(--mono);font-size:.78rem;background:var(--paper);
+    border-top:1px solid var(--line);padding:14px 16px;margin:0;max-height:420px;overflow:auto;color:var(--ink)}
+  pre.json.err{background:var(--danger-soft);color:var(--danger)}
+  .progress{font-family:var(--mono);font-size:.76rem;color:var(--ink-soft);margin:10px 0 0}
+  .empty{color:var(--ink-soft);font-style:italic;font-size:.9rem}
+  @media(max-width:620px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Langflow · Identificación</span>
+    <h1>Identificación de Beneficios desde Contratos</h1>
+  </header>
+  <p class="sub">Selecciona uno o varios contratos en PDF. Cada uno se sube al agente, se procesa y se muestra el JSON de beneficios identificados.</p>
+
+  <details class="config">
+    <summary>Configuración de conexión</summary>
+    <div class="card" style="margin-top:14px">
+      <div class="field">
+        <label for="base">URL base de Langflow</label>
+        <input id="base" type="text" value="http://localhost:7860">
+        <div class="hint">Sin la ruta /api. Ej: http://localhost:7860</div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="flowid">Flow ID (identificación)</label>
+          <input id="flowid" type="text" value="YOUR_FLOW_ID">
+        </div>
+        <div class="field">
+          <label for="apikey">API Key</label>
+          <input id="apikey" type="password" placeholder="sk-..." value="">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="nodeid">ID del nodo File</label>
+          <input id="nodeid" type="text" value="YOUR_FILE_NODE_ID">
+        </div>
+        <div class="field">
+          <label for="fileparam">Campo del archivo en tweaks</label>
+          <input id="fileparam" type="text" value="path">
+          <div class="hint">Si falla, prueba con "file_path" o "files".</div>
+        </div>
+      </div>
+      <div class="hint">La configuración se guarda solo en este navegador (localStorage). La API Key nunca se envía a otro sitio.</div>
+    </div>
+  </details>
+
+  <div class="card">
+    <h2>Contratos (PDF)</h2>
+    <div class="drop" id="drop">
+      <div class="big">Arrastra aquí tus PDFs o haz clic para seleccionarlos</div>
+      <div class="small">Puedes elegir varios a la vez</div>
+    </div>
+    <input type="file" id="fileInput" accept="application/pdf" multiple>
+    <div class="files" id="fileList"></div>
+    <div class="actions">
+      <button class="run" id="btnRun" disabled>Procesar contratos</button>
+      <button class="ghost" id="btnClear" disabled>Quitar todos</button>
+      <button class="ghost" id="btnDownload" disabled>Descargar JSON consolidado</button>
+    </div>
+    <div class="progress" id="progress"></div>
+  </div>
+
+  <div class="card">
+    <h2>Resultados</h2>
+    <div id="results"><p class="empty">Los resultados de cada contrato aparecerán aquí.</p></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const cfgIds = ["base","flowid","apikey","nodeid","fileparam"];
+cfgIds.forEach(k=>{
+  const v=localStorage.getItem("id_"+k);
+  if(v!==null) $(k).value=v;
+  $(k).addEventListener("input",()=>localStorage.setItem("id_"+k,$(k).value));
+});
+
+let queue = [];            // { file, status, result }
+const results = {};        // filename -> parsed result (para consolidado)
+
+function fmtSize(b){ return b<1024?b+" B":b<1048576?(b/1024).toFixed(1)+" KB":(b/1048576).toFixed(1)+" MB"; }
+
+function renderList(){
+  const wrap=$("fileList"); wrap.innerHTML="";
+  queue.forEach((item,i)=>{
+    const div=document.createElement("div"); div.className="file-item";
+    div.innerHTML=`<span class="name">${item.file.name}</span>
+      <span class="size">${fmtSize(item.file.size)}</span>
+      <span class="badge ${item.status.cls}">${item.status.txt}</span>`;
+    const rm=document.createElement("button"); rm.className="rm"; rm.textContent="✕";
+    rm.title="Quitar"; rm.onclick=()=>{ queue.splice(i,1); renderList(); updateButtons(); };
+    div.appendChild(rm); wrap.appendChild(div);
+  });
+  updateButtons();
+}
+function updateButtons(){
+  $("btnRun").disabled = queue.length===0;
+  $("btnClear").disabled = queue.length===0;
+  $("btnDownload").disabled = Object.keys(results).length===0;
+}
+function setStatus(item,cls,txt){ item.status={cls,txt}; renderList(); }
+
+/* ---- selección de archivos ---- */
+function addFiles(fileList){
+  [...fileList].filter(f=>f.type==="application/pdf"||f.name.toLowerCase().endsWith(".pdf"))
+    .forEach(f=>queue.push({file:f,status:{cls:"pending",txt:"pendiente"},result:null}));
+  renderList();
+}
+$("drop").addEventListener("click",()=>$("fileInput").click());
+$("fileInput").addEventListener("change",e=>addFiles(e.target.files));
+["dragover","dragenter"].forEach(ev=>$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.add("drag");}));
+["dragleave","drop"].forEach(ev=>$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.remove("drag");}));
+$("drop").addEventListener("drop",e=>addFiles(e.dataTransfer.files));
+
+$("btnClear").addEventListener("click",()=>{ queue=[]; renderList(); });
+
+/* ---- extracción de resultado ---- */
+function extractResult(data){
+  try{
+    const out=data.outputs?.[0]?.outputs?.[0];
+    const txt = out?.results?.message?.text
+        ?? out?.results?.message?.data?.text
+        ?? out?.messages?.[0]?.message
+        ?? null;
+    if(txt){ try{ return JSON.parse(txt); }catch{ return txt; } }
+    return data;
+  }catch(e){ return data; }
+}
+
+/* ---- subir un archivo a Langflow (API v2) ---- */
+async function uploadFile(file, base, apikey){
+  const fd=new FormData(); fd.append("file",file);
+  const headers={}; if(apikey) headers["x-api-key"]=apikey;
+  const r=await fetch(base.replace(/\/$/,"")+"/api/v2/files",{method:"POST",headers,body:fd});
+  const raw=await r.text(); let data; try{data=JSON.parse(raw);}catch{data=raw;}
+  if(!r.ok) throw new Error("Subida falló (HTTP "+r.status+"): "+(typeof data==="string"?data:JSON.stringify(data)));
+  // Devolvemos el objeto crudo para poder inspeccionar el formato exacto de la ruta.
+  return data;
+}
+
+/* ---- ejecutar el flow ----
+   Ya confirmamos la combinación correcta: campo "path", formato texto,
+   usando el path completo (<uuid>/<nombre>.pdf) que devuelve la subida,
+   sin input_value (el flujo no lo usa y puede desestabilizar el arranque).
+   Un solo intento + 1 reintento corto si Ollama da un traspié momentáneo.
+   Se acabó el barrido de 24 combinaciones: cada intento puede tardar
+   varios segundos con un modelo local, así que probar todo multiplicaba
+   la espera real hasta dejar la interfaz "colgada" un buen rato. */
+async function runFlow(uploadResp, base, flowid, apikey, nodeid, fileparam, onStatus){
+  const url=base.replace(/\/$/,"")+"/api/v1/run/"+flowid;
+  const headers={"Content-Type":"application/json"}; if(apikey) headers["x-api-key"]=apikey;
+
+  const rawPath = (typeof uploadResp==="string") ? uploadResp
+                : (uploadResp.path || uploadResp.file_path || uploadResp.id || "");
+  const field = fileparam || "path";
+  const tweak={}; tweak[field]=rawPath;
+  // CLAVE: un session_id único por ejecución. Sin esto, Langflow puede reutilizar
+  // resultados cacheados de nodos (como "Leer archivo") de una llamada anterior,
+  // aunque el tweaks apunte a un PDF distinto. El ejemplo oficial de Langflow
+  // (API access) genera uno con uuid.uuid4() en cada llamada; replicamos eso.
+  const sessionId = (crypto.randomUUID ? crypto.randomUUID()
+    : "sess-"+Date.now()+"-"+Math.random().toString(36).slice(2));
+  const body={ output_type:"text", input_type:"text", input_value:"",
+    session_id: sessionId,
+    tweaks:{ [nodeid]: tweak } };
+
+  async function attempt(timeoutMs){
+    const ctrl=new AbortController();
+    const t=setTimeout(()=>ctrl.abort(),timeoutMs);
+    try{
+      const r=await fetch(url,{method:"POST",headers,body:JSON.stringify(body),signal:ctrl.signal});
+      const raw=await r.text(); let data; try{data=JSON.parse(raw);}catch{data=raw;}
+      clearTimeout(t);
+      return { ok:r.ok, status:r.status, data };
+    }catch(err){
+      clearTimeout(t);
+      if(err.name==="AbortError") throw new Error("Tiempo de espera agotado ("+(timeoutMs/1000)+"s). El modelo local puede estar tardando más de lo normal, o el flujo quedó colgado en Langflow.");
+      throw err;
+    }
+  }
+
+  const TIMEOUT_MS = 180000; // 3 min por intento: suficiente para un modelo local con contrato largo
+  onStatus && onStatus("Ejecutando flujo (puede tardar 1-3 min con modelo local)...");
+  let res = await attempt(TIMEOUT_MS);
+
+  if(!res.ok){
+    const errTxt = typeof res.data==="string"?res.data:JSON.stringify(res.data);
+    const modelHiccup = /Error building Component Ollama|Invalid JSON response|Expecting value/i.test(errTxt);
+    if(modelHiccup){
+      onStatus && onStatus("Traspié del modelo, reintentando una vez...");
+      res = await attempt(TIMEOUT_MS);
+    }
+  }
+
+  if(!res.ok){
+    const errTxt = typeof res.data==="string"?res.data:JSON.stringify(res.data);
+    throw new Error("Ejecución falló (HTTP "+res.status+") con ruta \""+rawPath+"\" campo \""+field+"\":\n"+errTxt);
+  }
+  const result = extractResult(res.data);
+  return { result, usedField:field, usedShape:"texto", usedPath:rawPath };
+}
+
+/* ---- render de un resultado ---- */
+function renderResult(name, payload, isErr){
+  const box=$("results");
+  if(box.querySelector(".empty")) box.innerHTML="";
+  const det=document.createElement("details"); det.className="result"; det.open=!isErr;
+  const pretty = typeof payload==="string"?payload:JSON.stringify(payload,null,2);
+  det.innerHTML=`<summary><span class="chev">▸</span><span class="rname">${name}</span>
+      <span class="badge ${isErr?"err":"ok"}">${isErr?"error":"ok"}</span></summary>
+      <pre class="json ${isErr?"err":""}">${pretty.replace(/</g,"&lt;")}</pre>`;
+  box.appendChild(det);
+}
+
+/* ---- proceso principal (secuencial) ---- */
+$("btnRun").addEventListener("click",async()=>{
+  const base=$("base").value.trim(), flowid=$("flowid").value.trim(),
+        apikey=$("apikey").value.trim(), nodeid=$("nodeid").value.trim(),
+        fileparam=$("fileparam").value.trim()||"path";
+  if(!apikey){ $("progress").textContent="Falta la API Key (créala en Settings → API Keys de Langflow)."; return; }
+  $("btnRun").disabled=true; $("btnClear").disabled=true;
+  $("results").innerHTML=""; Object.keys(results).forEach(k=>delete results[k]);
+
+  let done=0;
+  for(const item of queue){
+    done++;
+    $("progress").textContent=`Procesando ${done}/${queue.length}: ${item.file.name} ...`;
+    try{
+      setStatus(item,"up","subiendo");
+      const uploadResp=await uploadFile(item.file, base, apikey);
+      console.log("Respuesta de subida ("+item.file.name+"):", uploadResp);
+      setStatus(item,"run","procesando");
+      const out=await runFlow(uploadResp, base, flowid, apikey, nodeid, fileparam,
+        (msg)=>{ $("progress").textContent=`(${done}/${queue.length}) ${item.file.name}: ${msg}`; });
+      setStatus(item,"ok","ok");
+      results[item.file.name]=out.result;
+      renderResult(item.file.name,out.result,false);
+      // Si acertó con una combinación distinta a la configurada, la fijamos para los siguientes
+      if(out.usedField && $("fileparam").value.trim()!==out.usedField){
+        $("fileparam").value=out.usedField; localStorage.setItem("id_fileparam",out.usedField);
+      }
+      $("progress").textContent=`✓ ${item.file.name}: campo "${out.usedField}" (${out.usedShape}), ruta "${out.usedPath}".`;
+    }catch(err){
+      setStatus(item,"err","error");
+      renderResult(item.file.name, err.message, true);
+    }
+    updateButtons();
+  }
+  $("progress").textContent=`Listo. ${done} contrato(s) procesado(s).`;
+  $("btnRun").disabled=false; $("btnClear").disabled=false;
+});
+
+/* ---- descarga consolidada ---- */
+$("btnDownload").addEventListener("click",()=>{
+  const consolidated={ generado:new Date().toISOString(), total:Object.keys(results).length, contratos:results };
+  const blob=new Blob([JSON.stringify(consolidated,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="beneficios_consolidado.json"; a.click(); URL.revokeObjectURL(a.href);
+});
+
+updateButtons();
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+{
+  "metadata": {
+    "title": "Sample Benefits Catalog",
+    "purpose": "Public demonstration only",
+    "scale": "1=Low, 2=Medium, 3=High"
+  },
+  "project_benefits": [
+    {
+      "id": "B101",
+      "category": "Financial Value",
+      "benefit": "Cost recovery / overhead",
+      "description": "Ability of a project to recover shared or indirect costs.",
+      "scale": {
+        "1": "Low",
+        "2": "Medium",
+        "3": "High"
+      }
+    },
+    {
+      "id": "B102",
+      "category": "Financial Value",
+      "benefit": "Net financial contribution",
+      "description": "Net economic contribution after total project costs.",
+      "scale": {
+        "1": "Low",
+        "2": "Medium",
+        "3": "High"
+      }
+    },
+    {
+      "id": "B204",
+      "category": "Stakeholder Value",
+      "benefit": "Stakeholder satisfaction",
+      "description": "Perceived satisfaction of key stakeholders with project outcomes.",
+      "scale": {
+        "1": "Low",
+        "2": "Medium",
+        "3": "High"
+      }
+    },
+    {
+      "id": "B304",
+      "category": "Capability Building",
+      "benefit": "Infrastructure strengthening",
+      "description": "New or improved physical or digital capabilities enabled by the project.",
+      "scale": {
+        "1": "Low",
+        "2": "Medium",
+        "3": "High"
+      }
+    },
+    {
+      "id": "B401",
+      "category": "Talent",
+      "benefit": "Advanced talent development",
+      "description": "Development of advanced skills and human capital through the project.",
+      "scale": {
+        "1": "Low",
+        "2": "Medium",
+        "3": "High"
+      }
+    },
+    {
+      "id": "B601",
+      "category": "Knowledge Creation",
+      "benefit": "Knowledge products",
+      "description": "Creation of reusable research, publications, products, or services.",
+      "scale": {
+        "1": "Low",
+        "2": "Medium",
+        "3": "High"
+      }
+    }
+  ],
+  "portfolio_benefits": [
+    {
+      "id": "P01",
+      "category": "Strategic Value",
+      "benefit": "Strategic alignment",
+      "description": "Contribution of portfolio components to strategic objectives."
+    },
+    {
+      "id": "P02",
+      "category": "Portfolio Performance",
+      "benefit": "Portfolio success rate",
+      "description": "Share of portfolio components meeting agreed success criteria."
+    }
+  ]
+}

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente de Gestión de Beneficios</title>
+<style>
+  :root{
+    --ink:#10243b;
+    --ink-soft:#3a5778;
+    --paper:#f6f4ee;
+    --line:#d8d2c4;
+    --accent:#0f766e;         /* teal — investigador */
+    --accent-soft:#dcefec;
+    --pmo:#7c3aed;            /* violeta — PMO */
+    --pmo-soft:#ede9fe;
+    --amber:#b45309;
+    --danger:#9f1239;
+    --radius:14px;
+    --mono:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;
+    --sans:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    --role:var(--accent);       /* color activo, cambia con el rol */
+    --role-soft:var(--accent-soft);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);color:var(--ink);
+    background:linear-gradient(180deg,#f6f4ee,#eef0ec 100%);
+    min-height:100vh;line-height:1.55}
+  .wrap{max-width:980px;margin:0 auto;padding:32px 20px 64px}
+  header.top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  header.top h1{font-size:1.55rem;margin:0;letter-spacing:-.02em}
+  header.top .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--role);font-weight:600;transition:color .2s}
+  .sub{color:var(--ink-soft);font-size:.95rem;margin:2px 0 24px}
+
+  /* Selector de rol */
+  .roles{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+  .role-card{border:1.5px solid var(--line);border-radius:var(--radius);
+    background:#fff;padding:16px 18px;cursor:pointer;transition:border-color .18s,box-shadow .18s;
+    position:relative}
+  .role-card:hover{border-color:var(--ink-soft)}
+  .role-card.active[data-role="researcher"]{border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft)}
+  .role-card.active[data-role="pmo"]{border-color:var(--pmo);
+    box-shadow:0 0 0 3px var(--pmo-soft)}
+  .role-card .rtitle{font-weight:700;font-size:1rem;display:flex;align-items:center;gap:9px}
+  .role-card .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .role-card[data-role="researcher"] .dot{background:var(--accent)}
+  .role-card[data-role="pmo"] .dot{background:var(--pmo)}
+  .role-card .rdesc{font-size:.8rem;color:var(--ink-soft);margin-top:6px}
+  .role-card .scope{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;
+    text-transform:uppercase;margin-top:9px;color:var(--ink-soft);font-weight:600}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;margin-bottom:20px;box-shadow:0 1px 2px rgba(16,36,59,.04)}
+  .card h2{font-size:.82rem;text-transform:uppercase;letter-spacing:.12em;
+    color:var(--ink-soft);margin:0 0 16px;font-weight:700}
+
+  details.config{margin-bottom:20px}
+  details.config summary{cursor:pointer;font-family:var(--mono);font-size:.8rem;
+    color:var(--role);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
+  details.config summary::-webkit-details-marker{display:none}
+  details.config summary::before{content:"⚙";font-size:1rem}
+
+  label{display:block;font-size:.78rem;font-weight:600;color:var(--ink-soft);
+    margin:0 0 6px;letter-spacing:.01em}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  input,textarea{width:100%;font-family:inherit;font-size:.95rem;color:var(--ink);
+    background:var(--paper);border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;resize:vertical}
+  input:focus,textarea:focus{outline:2px solid var(--role);outline-offset:1px;background:#fff}
+  .field{margin-bottom:16px}
+  .hint{font-size:.74rem;color:var(--ink-soft);margin-top:5px}
+  textarea.obj{min-height:90px}
+  textarea.deliv{min-height:120px}
+
+  .actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  button.run{background:var(--role);color:#fff;border:none;border-radius:10px;
+    padding:12px 24px;font-size:.95rem;font-weight:600;cursor:pointer;
+    transition:filter .15s,transform .05s,background .2s}
+  button.run:hover{filter:brightness(1.08)}
+  button.run:active{transform:translateY(1px)}
+  button.run:disabled{opacity:.55;cursor:not-allowed}
+  button.ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line);
+    border-radius:10px;padding:11px 16px;font-size:.9rem;cursor:pointer}
+  .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;border-radius:50%;display:inline-block;
+    animation:spin .7s linear infinite;vertical-align:-2px;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .resp{white-space:pre-wrap;font-size:.96rem;color:var(--ink);
+    background:var(--role-soft);border-left:3px solid var(--role);
+    border-radius:0 10px 10px 0;padding:18px;min-height:60px;transition:background .2s,border-color .2s}
+  .resp.empty{color:var(--ink-soft);background:var(--paper);border-left-color:var(--line);font-style:italic}
+  .err{color:var(--danger);background:#fdeef1;border-left-color:var(--danger)}
+  .meta{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);margin-top:10px}
+
+  details.prompt-preview{margin-top:14px}
+  details.prompt-preview summary{cursor:pointer;font-size:.76rem;color:var(--ink-soft);
+    font-family:var(--mono);list-style:none}
+  details.prompt-preview summary::-webkit-details-marker{display:none}
+  details.prompt-preview summary::before{content:"▸ ";color:var(--role)}
+  details.prompt-preview[open] summary::before{content:"▾ "}
+  pre.preview{white-space:pre-wrap;font-family:var(--mono);font-size:.76rem;
+    background:var(--paper);border:1px solid var(--line);border-radius:10px;
+    padding:12px;margin-top:8px;color:var(--ink-soft);max-height:280px;overflow:auto}
+  @media(max-width:620px){.row,.roles{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow" id="eyebrow">Langflow · BRM Agent</span>
+    <h1>Agente de Gestión de Beneficios</h1>
+  </header>
+  <p class="sub">Selecciona tu rol y envía objetivos y entregables. El nivel de análisis se ajusta al rol.</p>
+
+  <!-- Selector de rol -->
+  <div class="roles" role="tablist">
+    <div class="role-card active" data-role="researcher" tabindex="0" role="tab" aria-selected="true">
+      <div class="rtitle"><span class="dot"></span>Investigador</div>
+      <div class="rdesc">Análisis de los beneficios que genera el proyecto individual y su mapeo a la matriz de indicadores.</div>
+      <div class="scope">Nivel: Proyecto</div>
+    </div>
+    <div class="role-card" data-role="pmo" tabindex="0" role="tab" aria-selected="false">
+      <div class="rtitle"><span class="dot"></span>Gestor de Portafolio / PMO</div>
+      <div class="rdesc">Contribución del proyecto a los beneficios agregados del portafolio: sinergias, solapamientos y alineación estratégica.</div>
+      <div class="scope">Nivel: Portafolio</div>
+    </div>
+  </div>
+
+  <details class="config">
+    <summary>Configuración de conexión</summary>
+    <div class="card" style="margin-top:14px">
+      <div class="field">
+        <label for="endpoint">URL del endpoint del flow</label>
+        <input id="endpoint" type="text" placeholder="http://localhost:7860/api/v1/run/TU_FLOW_ID"
+               value="http://localhost:7860/api/v1/run/YOUR_FLOW_ID">
+        <div class="hint">Cópiala desde <em>Publish → API access</em> de tu flow en Langflow.</div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="apikey">API Key <span style="font-weight:400">(opcional)</span></label>
+          <input id="apikey" type="password" placeholder="sk-... (vacía si usas SKIP_AUTH)">
+        </div>
+        <div class="field">
+          <label for="outputType">output_type</label>
+          <input id="outputType" type="text" value="chat">
+        </div>
+      </div>
+      <div class="hint">La API Key se guarda solo en este navegador (localStorage).</div>
+    </div>
+  </details>
+
+  <div class="card">
+    <h2>Entrada para el agente</h2>
+    <div class="field">
+      <label for="objetivos">Objetivos del proyecto</label>
+      <textarea id="objetivos" class="obj" placeholder="Ej. Incrementar la cobertura educativa en un 12% y reducir el tiempo de autorización de servicios en un 30%..."></textarea>
+    </div>
+    <div class="field">
+      <label for="entregables">Entregables</label>
+      <textarea id="entregables" class="deliv" placeholder="Ej.&#10;1. Plataforma de seguimiento de matrícula&#10;2. Tablero de control de indicadores&#10;3. Informe trimestral de realización de beneficios..."></textarea>
+    </div>
+    <div class="actions">
+      <button class="run" id="btn">Enviar al agente</button>
+      <button class="ghost" id="clear">Limpiar</button>
+    </div>
+    <details class="prompt-preview">
+      <summary>Ver instrucción que se enviará (según el rol)</summary>
+      <pre class="preview" id="preview"></pre>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>Respuesta del agente</h2>
+    <div class="resp empty" id="resp">La respuesta del agente aparecerá aquí.</div>
+    <div class="meta" id="meta"></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+/* ---------- Definición de roles ----------
+   Cada rol antepone un bloque de instrucciones que reorienta el SCOPE del análisis.
+   Mismo flow de Langflow; solo cambia el texto que enviamos como input_value. */
+const ROLES = {
+  researcher:{
+    label:"Investigador",
+    eyebrow:"Langflow · Nivel Proyecto",
+    color:"var(--accent)", soft:"var(--accent-soft)",
+    instruction:
+`ROL: Investigador. NIVEL DE ANÁLISIS: PROYECTO INDIVIDUAL.
+
+Analiza exclusivamente los beneficios que genera ESTE proyecto de forma aislada.
+Para cada beneficio identificado:
+- Descríbelo y clasifícalo según las categorías de la matriz de indicadores de beneficios.
+- Indica el indicador de la matriz con el que se mide y su categoría.
+- Señala si es un beneficio tangible o intangible, y su horizonte (corto/medio/largo plazo).
+- Fundamenta la relación entre el entregable y el beneficio.
+No agregues análisis a nivel de portafolio; el foco es el proyecto en sí mismo.`
+  },
+  pmo:{
+    label:"Gestor de Portafolio / PMO",
+    eyebrow:"Langflow · Nivel Portafolio",
+    color:"var(--pmo)", soft:"var(--pmo-soft)",
+    instruction:
+`ROL: Gestor de Portafolio / PMO. NIVEL DE ANÁLISIS: PORTAFOLIO.
+
+Analiza los beneficios de este proyecto desde la perspectiva del PORTAFOLIO global.
+Incluye explícitamente:
+- Cómo contribuyen los beneficios de este proyecto a los beneficios AGREGADOS del portafolio.
+- Posibles sinergias y solapamientos con beneficios típicos de otros proyectos del portafolio.
+- Alineación con los objetivos estratégicos y el balance de valor del portafolio.
+- Priorización y recomendaciones de gobernanza (qué vigilar, qué reforzar, qué riesgos de doble conteo de beneficios existen).
+- Un resumen ejecutivo de beneficios a nivel de portafolio, orientado a la toma de decisiones de la PMO.`
+  }
+};
+
+let currentRole = "researcher";
+
+/* ---------- Persistencia de configuración ---------- */
+["endpoint","apikey","outputType"].forEach(k=>{
+  const v = localStorage.getItem("lf_"+k);
+  if(v!==null) $(k).value = v;
+  $(k).addEventListener("input",()=>localStorage.setItem("lf_"+k,$(k).value));
+});
+const savedRole = localStorage.getItem("lf_role");
+if(savedRole && ROLES[savedRole]) currentRole = savedRole;
+
+/* ---------- Selección de rol ---------- */
+function applyRole(role){
+  currentRole = role;
+  localStorage.setItem("lf_role", role);
+  const r = ROLES[role];
+  document.documentElement.style.setProperty("--role", r.color);
+  document.documentElement.style.setProperty("--role-soft", r.soft);
+  $("eyebrow").textContent = r.eyebrow;
+  document.querySelectorAll(".role-card").forEach(c=>{
+    const on = c.dataset.role===role;
+    c.classList.toggle("active",on);
+    c.setAttribute("aria-selected", on?"true":"false");
+  });
+  updatePreview();
+}
+document.querySelectorAll(".role-card").forEach(card=>{
+  card.addEventListener("click",()=>applyRole(card.dataset.role));
+  card.addEventListener("keydown",e=>{
+    if(e.key==="Enter"||e.key===" "){e.preventDefault();applyRole(card.dataset.role);}
+  });
+});
+
+/* ---------- Construcción del mensaje ---------- */
+function buildInputValue(){
+  const objetivos=$("objetivos").value.trim();
+  const entregables=$("entregables").value.trim();
+  return `${ROLES[currentRole].instruction}
+
+=== DATOS DEL PROYECTO ===
+
+OBJETIVOS:
+${objetivos||"(no especificados)"}
+
+ENTREGABLES:
+${entregables||"(no especificados)"}`;
+}
+function updatePreview(){ $("preview").textContent = buildInputValue(); }
+["objetivos","entregables"].forEach(id=>$(id).addEventListener("input",updatePreview));
+
+/* ---------- Utilidades de respuesta ---------- */
+function setResp(text,empty=false,err=false){
+  const el=$("resp");
+  el.textContent=text;
+  el.className="resp"+(empty?" empty":"")+(err?" err":"");
+}
+function extractMessage(data){
+  try{
+    const out = data.outputs?.[0]?.outputs?.[0];
+    return out?.results?.message?.text
+        ?? out?.results?.message?.data?.text
+        ?? out?.outputs?.message?.message
+        ?? out?.messages?.[0]?.message
+        ?? JSON.stringify(data,null,2);
+  }catch(e){ return JSON.stringify(data,null,2); }
+}
+
+/* ---------- Limpiar ---------- */
+$("clear").addEventListener("click",()=>{
+  $("objetivos").value=""; $("entregables").value="";
+  setResp("La respuesta del agente aparecerá aquí.",true); $("meta").textContent="";
+  updatePreview();
+});
+
+/* ---------- Envío ---------- */
+$("btn").addEventListener("click",async()=>{
+  const endpoint=$("endpoint").value.trim();
+  const apikey=$("apikey").value.trim();
+  const outputType=$("outputType").value.trim()||"chat";
+  const objetivos=$("objetivos").value.trim();
+  const entregables=$("entregables").value.trim();
+
+  if(!endpoint || endpoint.endsWith("/api/v1/run/")){
+    setResp("Configura primero la URL del endpoint con tu Flow ID (sección Configuración de conexión).",false,true);return;
+  }
+  if(!objetivos && !entregables){
+    setResp("Escribe al menos los objetivos o los entregables.",false,true);return;
+  }
+
+  const body={ input_value:buildInputValue(), output_type:outputType, input_type:"chat" };
+  const headers={"Content-Type":"application/json"};
+  if(apikey) headers["x-api-key"]=apikey;
+
+  const btn=$("btn");
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Procesando ('+ROLES[currentRole].label+')...';
+  setResp("Esperando al agente... (Qwen2.5 puede tardar en la primera llamada)",true); $("meta").textContent="";
+  const t0=performance.now();
+
+  try{
+    const r=await fetch(endpoint,{method:"POST",headers,body:JSON.stringify(body)});
+    const raw=await r.text();
+    let data; try{ data=JSON.parse(raw); }catch{ data=raw; }
+    if(!r.ok){
+      setResp("Error "+r.status+":\n"+(typeof data==="string"?data:JSON.stringify(data,null,2)),false,true);
+    }else{
+      setResp(typeof data==="string"?data:extractMessage(data));
+    }
+    const ms=Math.round(performance.now()-t0);
+    $("meta").textContent="Rol: "+ROLES[currentRole].label+" · HTTP "+r.status+" · "+ms+" ms";
+  }catch(err){
+    setResp("No se pudo conectar con el agente.\n\n"+err.message+
+      "\n\nVerifica que Langflow esté corriendo y arrancado con LANGFLOW_CORS_ORIGINS. "+
+      "Si es error de auth, usa LANGFLOW_SKIP_AUTH_AUTO_LOGIN=true o una API Key.",false,true);
+  }finally{
+    btn.disabled=false; btn.textContent="Enviar al agente";
+  }
+});
+
+/* ---------- Init ---------- */
+applyRole(currentRole);
+updatePreview();
+</script>
+</body>
+</html>
